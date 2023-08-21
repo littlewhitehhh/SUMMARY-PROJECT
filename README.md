@@ -8,3 +8,5 @@
 ## TODO
 
 1、项目的搭建：monorepo 的构思？
+
+- 需完成 monorepo 环境的搭建
