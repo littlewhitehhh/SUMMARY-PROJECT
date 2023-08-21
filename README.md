@@ -9,4 +9,6 @@
 
 1、项目的搭建：monorepo 的构思？
 
+- 初步认知 monorepo
+
 - 需完成 monorepo 环境的搭建
