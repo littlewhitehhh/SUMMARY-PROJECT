@@ -11,4 +11,7 @@
 
 - 初步认知 monorepo
 
-- 需完成 monorepo 环境的搭建
+- monorepo 环境的搭建
+
+- 在 monorepo 中进行 vite、vue、typescript 等项目的集成
+  - 做到 create vite？

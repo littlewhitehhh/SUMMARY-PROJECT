@@ -257,3 +257,83 @@ packages:
 ```
 
 至此,我们的 monorepo 项目雏形已经建立完毕.
+
+### monorepo 下集成 Vite
+
+#### .npmrc 文件
+
+安装依赖之前，先熟悉下.npmrc 文件，在根目录下建立.npmrc 文件
+这个.npmrc 文件相当于项目级的 npm 配置
+
+```ini
+registry=https://registry.npm.taobao.org
+
+```
+
+上面的配置相当于切换 npm 镜像源为 https://registry.npm.taobao.org，只不过配置只在当前项目目录下生效，优先级高于用户设置的本地配置。
+
+这个效果相当于`npm set config registry https://registry.npm.taobao.org`.
+
+将一些必要的配置放在这个项目级的 .npmrc 文件中，并且将这个文件提交到代码仓，这样就可以使后续贡献的其他用户免去许多环境配置的麻烦，尤其是在公司的内网环境下，各式各样的 npm 私仓和代理配置让很多新人头疼。
+
+当然，如果你是开源项目，就不是很推荐你在里面做网络环境相关的配置了，因为每个贡献者的网络环境是多样化的，这时项目级的 .npmrc 就只适合放一些与包管理相关的配置。
+
+#### 安装公共项目构建依赖
+
+接下来，就是在根目录下安装所需的构建工具：`Vite`和`Typescript`
+
+```bash
+pnpm i -wD vite typescript
+```
+
+因为每个包都需要用到 Vite 和 TypeScript 进行构建，公共开发依赖统一安装在根目录下，是可以被各个子包正常使用
+由于我们要构建的是 Vue 项目，Vue 推荐的组件开发范式单文件组件 SFC 并不是原生的 Web 开发语法，所以需要一个编译为原生 js 的过程，所以我们需要引入相关的 Vite 插件`@vitejs/plugin-vue`，这个插件继承了 Vue 编译器的能力，是的构建工具可以理解 vue sfc
+
+```bash
+pnpm i -wD @vitejs/plugin-vue
+
+```
+
+另外需要注意，vue 应该被安装到根目录下的 dependencies，因为几乎所有子包的 peerDependencies 中都具有 vue(peerDependencies)，我们结合 pnpm 的`resolve-peers-from-workspace-root` 机制，可以统一所有子包中 vue 的版本
+
+安装 Vue
+
+```bash
+pnpm i -wS vue
+```
+
+安装 css 预处理
+
+```bash
+pnpm i -wD sass
+```
+
+#### Vite 集成
+
+为了成功集成 Vite，让我们的集成库构建出产物，这里我们需要完成三个步骤：
+
+- 编写构建目标源码，目前的重点是工程化而非组件库的开发，代码层面能够体现构建要点的 demo
+- 准备 vite.config 配置文件
+- 在 package.json 中设置构建脚本
+
+在集成 Vite 过程中，我们需要进行非常多的扩展
+
+1. 对于 package 目录下的每一个组件包，我们制定更细致的源码组织规则
+
+- 各种配置文件，如`package.json`、`vite.config.ts(js)`都放在模块根目录下
+- src 目录下存放源码，其中`src/index.ts(js)`作为模块的总出口，所有需要暴露给外部供其他模块使用的方法、对象都要在这里声明导出。
+- dist 目录作为产物的输出目录
+
+2. 如果是组件库，可以在 packages 目录下新建统一出口包。如 element-plus 主包负责各个子包，并统一导出其中内容
+3. 测试模块，可以根目录下新建 demo 模块，用来进行单元测试？
+4. typescript，tsconfig 的测试
+
+因为我们规定了每个模块的 dist 都作为产物输出目录，而输出产物是不需要入仓的(clone 代码后执行构建命令就能生成)，所以要注意在根目录的 .gitignore 中添加产物目录 dist：
+
+```diff
+# .gitignore
+node_modules
++dist
+```
+
+#### 公共方法代码预备
