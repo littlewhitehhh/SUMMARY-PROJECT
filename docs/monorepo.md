@@ -88,7 +88,4 @@ workspace:_后面的 _ 表示任意版本，除了 \* 还有其他：~ 、^ 符�
 [Monorepo - 优劣、踩坑、选型](https://juejin.cn/post/7215886869199896637)
 [为什么越来越多的项目选择 Monorepo？](https://juejin.cn/post/7207743145999368229)
 
-[官方文档：package.json](https://link.juejin.cn/?target=https%3A%2F%2Fdocs.npmjs.com%2Fcli%2Fv9%2Fconfiguring-npm%2Fpackage-json%23homepage)
-[关于前端大管家 package.json，你知道多少？](https://juejin.cn/post/7023539063424548872)
-
 ## 以 pnpm 进行 monorepo 环境的搭建

@@ -1,3 +1,10 @@
+# package.json
+
+[官方文档：package.json](https://link.juejin.cn/?target=https%3A%2F%2Fdocs.npmjs.com%2Fcli%2Fv9%2Fconfiguring-npm%2Fpackage-json%23homepage)
+[关于前端大管家 package.json，你知道多少？](https://juejin.cn/post/7023539063424548872)
+
+[package.json 导入模块入口文件优先级详解 main, browser, module, exports](https://juejin.cn/post/7225072417532739644)
+
 package.json 比较完整的文件
 
 ```json
