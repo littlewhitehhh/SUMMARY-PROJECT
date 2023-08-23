@@ -623,3 +623,9 @@ Vite 本质上是双引擎架构——内部除了 Rollup 之外，还集成了�
 ```
 
 项目引用特性，简单理解就是为醒目的不同于部分应用不同的 tsconfig 能力，
+
+参考：
+
+- [【从 0 到 1 搭建 Vue 组件库框架】2. 在 monorepo 模式下集成 Vite 和 TypeScript - 上](https://juejin.cn/post/7257519248053436473)
+- [【从 0 到 1 搭建 Vue 组件库框架】2. 在 monorepo 模式下集成 Vite 和 TypeScript - 下](https://juejin.cn/post/7257517788205367351)
+- [Monorepo pnpm 模式管理多个 web 项目](https://juejin.cn/post/7117897323014783013)
