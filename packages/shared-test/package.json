@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@summary-project/summary-admin": "workspace:^0.0.0",
     "@types/lodash": "^4.14.197",
     "lodash": "^4.17.21"
   }

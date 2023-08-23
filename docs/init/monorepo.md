@@ -455,3 +455,171 @@ dist/openxui-shared.umd.js  224.92 kB │ gzip: 42.24 kB
 ```
 
 此时 shared-test 打包完成，具体优化打包就不做介绍了
+
+#### typescript 集成
+
+安装号 typescript 公共依赖后，所谓的集成就是填写`tsconfig.json`文件。大部分项目都用着相同的 tsconfig 预设，且稳定之后在迭代过程中很少修改
+
+##### tsconfig 到底为了谁？
+
+我们注意到，在先前集成 Vite 过程中，我们没有做任何一点 TypeScript 配置，甚至无视了 IDE 的相关报错，但是丝毫没有影响 Vite 成功解析了我们的 ts 文件，并且构建出了产物。如果你平时习惯用 Vite 脚手架生成 ts 项目，可能会感到有点反直觉，以为没有配好 ts 应该会导致构建过程出错。
+其实，在 vite 官方文档中，是这样介绍的
+
+- vite 天然支持引入.ts 文件。注意：**Vite 仅仅执行.ts 文件的转移工作，并不执行任何类型检测**。并假定类型检测已经被 IDE 或构建过程处理了
+
+Vite 本质上是双引擎架构——内部除了 Rollup 之外，还集成了另一个构建工具 Esbuild。Esbuild 有着超快的编译速度，它在其中负责第三方库构建和 TS/JSX 语法编译。
+无论是构建模式还是开发服务器模式，Vite 都通过 Esbuild 来将 ts 文件转译为 js
+
+我们可以理解为，Vite 为了保证构建效率，内部并没有执行完整的 tsc 编译过程，而是每当遇到一个 ts 文件，就组装出一个最小化的、剔除了所有与类型检查相关配置的 tsconfig，交由 Esbuild 做转译工作——这个转译只确保生成对应的 js 产物，不做任何多余的事情。
+因此，**仅仅做单文件的转译几乎不需要多少 tsconfig 配置，以至于在没有 tsconfig.json 的情况下，Vite 的转译工作都能在绝大多数情况下获得正确预期结果。**
+
+既然如此。tsconfig 对于 vite 构建的影响如此小，，那么我们配置它更多的是为了什么？
+
+- tsconfig 主要是写给 IDE 看的，为了让 IDE 能够实现类型检测，提示我们代码中的类型错误
+- Vite 不负责类型检测，并且推荐我们在构建过程中于另一个进程单独执行类型检查，那么 tsconfig 就应该提供给执行检查任务的编译器 tsc。
+
+##### 规划 typescript 分治策略
+
+对整个项目的 tsconfig 配置，对于每个 tsconfig.json 文件，，我们主要从以下两个角度理解：
+
+- 每个 tsconfig.json 将一个文件集合声明为一个 ts project，通过 include 描述集合中包含的文件、exclude 字段声明集合中需要排除的文件。注意 出了 node_modules 中的三方依赖，每个被引用的源码文件都被包含进来
+- complierOptions 是编译选项，决定了 typescript 编译器在处理该 ts project 包含的文件是采取的策略和行为
+
+```json
+{
+  "complierOptions": {
+    //项目的编译选项
+  },
+  "include": {
+    //项目包含哪些文件
+  },
+  "exclude": {
+    // 在 include 包含的文件夹中需要排除哪些文件
+  }
+}
+```
+
+我们会将整个工程划分为多个 ts project，，应该采用什么依据划分嗯？
+
+参考 element-plus 的划分策略**不是将每个子模块划分为一个 ts project，分散在各个包管理中，而是将功能相似的代码划分为一个`ts project`中，集中在根目录下管理**
+![Alt text](image-3.png)
+
+对于每个 TypeScript 项目而言，编译选项 compilerOptions 大部分都是重复的，因此我们需要建立一个基础配置文件 `tsconfig.base.json`，供其他配置文件继承。
+
+```json
+// tsconfig.base.json
+{
+  "compilerOptions": {
+    // 项目的根目录
+    "rootDir": ".",
+    // 项目基础目录
+    "baseUrl": ".",
+    // tsc 编译产物输出目录
+    "outDir": "dist",
+    // 编译目标 js 的版本
+    "target": "es2022",
+    //
+    "module": "esnext",
+    // 模块解析策略
+    "moduleResolution": "node",
+    // 是否生成辅助 debug 的 .map.js 文件。
+    "sourceMap": false,
+    // 产物不消除注释
+    "removeComments": false,
+    // 严格模式类型检查，建议开启
+    "strict": true,
+    // 不允许有未使用的变量
+    "noUnusedLocals": true,
+    // 允许引入 .json 模块
+    "resolveJsonModule": true,
+
+    // 与 esModuleInterop: true 配合允许从 commonjs 的依赖中直接按 import XX from 'xxx' 的方式导出 default 模块。
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    // 在使用 const enum 或隐式类型导入时受到 TypeScript 的警告
+    "isolatedModules": true,
+    // 检查类型时是否跳过类型声明文件，一般在上游依赖存在类型问题时置为 true。
+    "skipLibCheck": true,
+    // 引入 ES 的功能库
+    "lib": [],
+    // 默认引入的模块类型声明
+    "types": [],
+    // 路径别名设置
+    "paths": {
+      "@openxui/*": ["packages/*/src"]
+    }
+  }
+}
+```
+
+我们将所有 node 环境下执行的脚本、配置文件划分为一个 ts project。准备其配置文件`package.node.json`
+
+```json
+// tsconfig.node.json
+{
+  // 继承基础配置
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // 该 ts project 将被视作一个部分，通过项目引用(Project References)功能集成到一个 tsconfig.json 中
+    "composite": true,
+    // node 脚本没有 dom 环境，因此只集成 esnext 库即可
+    "lib": ["ESNext"],
+    // 集成 Node.js 库函数的类型声明
+    "types": ["node"],
+    // 脚本有时会以 js 编写，因此允许 js
+    "allowJs": true
+  },
+  "include": [
+    // 目前项目中暂时只有配置文件，如 vite.config.ts，以后会逐步增加
+    "**/*.config.*"
+  ],
+  "exclude": [
+    // 暂时先排除产物目录，packages/xxx/dist/x.config.js 或者 node_modules/pkg/x.config.js 不会被包含进来
+    "**/dist",
+    "**/node_modules"
+  ]
+}
+```
+
+对于所有模块中 src 目录下的源码文件，它们几乎都是组件库的实现代码，大多要求浏览器环境下特有的 API(例如 DOM API)，且相互之间存在依赖关系。我们创建 `tsconfig.src.json` 将它们划入同一个 ts project 中。
+
+```json
+// tsconfig.src.json
+{
+  // 继承基础配置
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    // 组件库依赖浏览器的 DOM API
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["typings/env.d.ts", "packages/**/src"]
+}
+```
+
+到此，IDE 还是无法正常提供类型服务，我们最终还是要在根目录建立一个总的 tsconfig.json，通过 项目引用(Project References)功能 将多个 compilerOptions.composite = true 的 ts project 聚合在一起，这样 IDE 才能够识别。
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "moduleResolution": "node",
+
+    // vite 会读取到这个 tsconfig 文件(位于工作空间根目录)，按照其推荐配置这两个选项
+    // https://cn.vitejs.dev/guide/features.html#typescript-compiler-options
+    "isolatedModules": true,
+    "useDefineForClassFields": true
+  },
+  "files": [],
+  "references": [
+    // 聚合 ts project
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+```
+
+项目引用特性，简单理解就是为醒目的不同于部分应用不同的 tsconfig 能力，

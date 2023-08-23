@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@summary-project/shared": "workspace:^1.0.0",
+    "@summary-project/shared-test": "workspace:^1.0.0",
+    "@summary-project/shared-test-copy": "workspace:^1.0.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {
