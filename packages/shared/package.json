@@ -1,7 +1,7 @@
 {
-  "name": "summary-project",
-  "private": "true",
-  "description": "a project for summary ",
+  "name": "@summary-project/shared",
+  "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

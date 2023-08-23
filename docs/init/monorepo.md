@@ -258,6 +258,7 @@ packages:
 
 至此,我们的 monorepo 项目雏形已经建立完毕.
 
+
 ### monorepo 下集成 Vite
 
 #### .npmrc 文件
@@ -337,3 +338,4 @@ node_modules
 ```
 
 #### 公共方法代码预备
+我们安排 @summary-project/shared 作为公具方法包，将成为所有其他模块的依赖项。

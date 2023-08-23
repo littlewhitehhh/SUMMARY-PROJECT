@@ -1,5 +1,5 @@
 {
-  "name": "summary-project",
+  "name": "@summary-project/docs",
   "private": "true",
   "description": "a project for summary ",
   "main": "index.js",
