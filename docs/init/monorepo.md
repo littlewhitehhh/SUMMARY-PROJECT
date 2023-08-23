@@ -258,6 +258,7 @@ packages:
 
 至此,我们的 monorepo 项目雏形已经建立完毕.
 
+[Monorepo pnpm 模式管理多个 web 项目](https://juejin.cn/post/7117897323014783013)
 
 ### monorepo 下集成 Vite
 
@@ -338,4 +339,119 @@ node_modules
 ```
 
 #### 公共方法代码预备
-我们安排 @summary-project/shared 作为公具方法包，将成为所有其他模块的依赖项。
+
+**packages/shared-test**
+我们假定工具方法中有一个打印 Hello World 的方法。另外，为了演示引入外部依赖的工程能力，我们还要导出一个方法 useLodash，这个方法原封不动地返回 lodash 实例对象。index.ts 会作为出口统一导出这些方法。下面展示操作步骤。
+
+```bash
+# 为 shared 包安装 lodash 相关依赖
+pnpm --filter @openxui/shared i -S lodash @types/lodash
+```
+
+```js
+// packages/shared/src/hello.ts
+export function hello(to: string = "World") {
+  const txt = `Hello ${to}!`;
+  alert(txt);
+  return txt;
+}
+```
+
+```
+// packages/shared/src/useLodash.ts
+import lodash from 'lodash'
+
+export function useLodash() {
+  return lodash
+}
+```
+
+```// packages/shared/src/index.ts
+export * from './hello';
+export * from './useLodash'
+```
+
+#### 如果需要对公共方法模块进行打包处理
+
+们在公共方法模块 shared 包中添加 vite.config.ts，这个配置文件将告诉 vite 如何构建这个模块。
+组件库项目的模块自然要以库模式构建，Vite 能够很好地支持这种构建方式，官方文档也对这种用法进行了 说明。
+我们编写一个库模式下最简单的 vite.config 文件，并将 package.json 中的 build 脚本修改成 Vite 构建指令。
+
+```js
+// packages/shared-test/vite.config.ts
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  build: {
+    // 产物输出目录，默认值就是 dist。我们使用默认值，注释掉此字段。
+    // outDir: 'dist',
+
+    // 参考：https://cn.vitejs.dev/config/build-options.html#build-lib
+    lib: {
+      // 构建的入口文件
+      entry: "./src/index.ts",
+
+      // 产物的生成格式，默认为 ['es', 'umd']。我们使用默认值，注释掉此字段。
+      // formats: ['es', 'umd'],
+
+      // 当产物为 umd、iife 格式时，该模块暴露的全局变量名称
+      name: "summaryShared",
+      // 产物文件名称
+      fileName: "summary-shared",
+    },
+    // 为了方便学习，查看构建产物，将此置为 false，不要混淆产物代码
+    minify: false,
+  },
+});
+```
+
+然后修改 package.json 文件 n
+
+```diff
+// packages/shared/package.json
+{
+  // ...
+  "scripts": {
+-   "build": "echo build",
++   "build": "vite build",
+    "test": "echo test"
+  },
+}
+
+```
+
+之后，执行 shared-test 包的构建指令，Vite 会自动读取对应的 vite.config 文件，生成构建产物。
+
+```bash
+pnpm --filter @openxui/shared run build
+
+# 以下为指令输出
+> @openxui/shared@0.0.0 build D:\learning\openx-ui\packages\shared
+> vite build
+
+vite v4.4.4 building for production...
+✓ 6 modules transformed.
+dist/openxui-shared.mjs  213.46 kB │ gzip: 41.73 kB
+dist/openxui-shared.umd.js  224.92 kB │ gzip: 42.24 kB
+✓ built in 1.95s
+```
+
+在默认情况下，Vite 会为我们生成 .mjs 和 .umd.js 后缀的产物，可以满足绝大多数情况下对于产物格式的要求。其中 .mjs 对应 esm 格式的可用产物，.umd.js 对应 cjs 格式的可用产物。我们按照产物的路径，在 package.json 中修改对应的入口字段
+
+```json
+// packages/shared-test/package.json
+{
+  // 省略其他无关配置 ...
+  "main": "./dist/openxui-shared.umd.js",
+  "module": "./dist/openxui-shared.mjs",
+  "exports": {
+    ".": {
+      "require": "./dist/openxui-shared.umd.js",
+      "module": "./dist/openxui-shared.mjs"
+      // ...
+    }
+  }
+}
+```
+
+此时 shared-test 打包完成，具体优化打包就不做介绍了

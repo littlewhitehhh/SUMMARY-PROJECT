@@ -1,8 +1,15 @@
 {
-  "name": "@summary-project/shared-test",
+  "name": "@summary-project/shared-test-copy",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/summary-shared.umd.js",
+  "module": "./dist/summary-shared.mjs",
+  "exports": {
+    ".": {
+      "require": "./dist/summary-shared.umd.js",
+      "module": "./dist/summary-shared.mjs"
+    }
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": " vite build"
